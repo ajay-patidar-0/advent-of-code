@@ -1,92 +1,68 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <cmath>
 #include <vector>
 using namespace std;
 
-class guard
+string get_trinary(unsigned long long n, unsigned long long size)
 {
-public:
-    int x, y;
-    int dir_x = 0, dir_y = -1;
-    bool found = false;
-    void move_to(int x, int y)
+    string binary = "";
+    while (n)
     {
-        this->x = x;
-        this->y = y;
+        binary = to_string(n % 3) + binary;
+        n /= 3;
     }
-
-    bool is_on_border(int width, int height)
+    while (size)
     {
-        if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
-        {
-            return true;
-        }
-        return false;
+        if (binary.length() >= size - 2)
+            return binary;
+        else
+            binary = "0" + binary;
     }
-    void move(vector<vector<char>> &map)
-    {
-        if (map[y + dir_y][x + dir_x] == '.' || map[y + dir_y][x + dir_x] == 'X')
-        {
-            x += dir_x;
-            y += dir_y;
-            map[y][x] = 'X';
-        }
-        else if (map[y + dir_y][x + dir_x] == '#')
-        {
-            if (dir_x == 0 && dir_y == -1)
-            {
-                dir_x = 1;
-                dir_y = 0;
-            }
-            else if (dir_x == 1 && dir_y == 0)
-            {
-                dir_x = 0;
-                dir_y = 1;
-            }
-            else if (dir_x == 0 && dir_y == 1)
-            {
-                dir_x = -1;
-                dir_y = 0;
-            }
-            else if (dir_x == -1 && dir_y == 0)
-            {
-                dir_x = 0;
-                dir_y = -1;
-            }
-        }
-    }
-};
-
-bool check_loop(vector<vector<char>> map, int guard_x, int guard_y, int obstacle_x, int obstacle_y)
+    return binary;
+}
+bool valid_calib_eq(vector<unsigned long long> row)
 {
-    if (guard_x == obstacle_x && guard_y == obstacle_y)
-    {
-        return false;
-    }
 
-    else if (guard_x == obstacle_x && guard_y - 1 == obstacle_y)
+    unsigned long long size = row.size();
+    for (unsigned long long i = 0; i < pow(3, size - 2); i++)
     {
-        return false;
-    }
-    map[obstacle_y][obstacle_x] = '#';
-    guard ratnabai;
-    ratnabai.move_to(guard_x, guard_y);
-    map[ratnabai.y][ratnabai.x] = 'X';
-    int movecount = 0;
-    while (!ratnabai.is_on_border(map[0].size(), map.size()))
-    {
-        movecount++;
-        ratnabai.move(map);
-        if (movecount > 3 * map.size() * map[0].size())
+        string binary = get_trinary(i, size);
+        unsigned long long result = row[1];
+        for (unsigned long long j = 0; j < row.size() - 2; j++)
+        {
+
+            if (binary[j] == '0')
+            {
+                result += row[j + 2];
+            }
+            else if (binary[j] == '1')
+            {
+                result *= row[j + 2];
+            }
+            else
+            {
+                int num = row[j + 2];
+                int count = 0;
+                while (num)
+                {
+                    count++;
+                    num /= 10;
+                }
+                result = result * pow(10, count) + row[j + 2];
+            }
+        }
+        if (result == row[0])
         {
             return true;
         }
     }
     return false;
 }
+
 int main()
 {
-    guard ratnabai;
     // Create an ifstream object to read from a file
     ifstream inputFile("data.txt");
 
@@ -100,46 +76,34 @@ int main()
     // Read from the file
     string line;
 
-    vector<vector<char>> map;
+    vector<vector<unsigned long long>> calib_eq;
+
     while (getline(inputFile, line))
     {
-        vector<char> row;
-        for (int i = 0; i < line.size(); i++)
+        stringstream ss(line);
+        string word;
+        vector<unsigned long long> row;
+        while (ss >> word)
         {
-            row.push_back(line[i]);
-        }
-        map.push_back(row);
-    }
-    for (int i = 0; i < map.size(); i++)
-    {
-        for (int j = 0; j < map[i].size(); j++)
-        {
-            if (map[i][j] == '^')
+            try
             {
-                ratnabai.move_to(j, i);
-                ratnabai.found = true;
-                break;
+                row.push_back(stoll(word));
+            }
+            catch (const invalid_argument &)
+            {
             }
         }
-        if (ratnabai.found)
-        {
-            break;
-        }
+        calib_eq.push_back(row);
     }
-
-    int sum = 0;
-    for (int i = 0; i < map.size(); i++)
+    unsigned long long sum = 0;
+    for (unsigned long long i = 0; i < calib_eq.size(); i++)
     {
-        for (int j = 0; j < map[i].size(); j++)
+        if (valid_calib_eq(calib_eq[i]))
         {
-            if (check_loop(map, ratnabai.x, ratnabai.y, j, i))
-            {
-                sum++;
-            }
+            sum += calib_eq[i][0];
         }
     }
-
-    cout << sum << endl;
+    cout << sum;
 
     inputFile.close();
     return 0;
